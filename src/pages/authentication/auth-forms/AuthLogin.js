@@ -1,11 +1,8 @@
-import React from 'react';
-import { Link as RouterLink } from 'react-router-dom';
-
-// material-ui
+import React, { useContext } from 'react';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   Button,
   Checkbox,
-  Divider,
   FormControlLabel,
   FormHelperText,
   Grid,
@@ -17,24 +14,19 @@ import {
   Stack,
   Typography
 } from '@mui/material';
-
-// third party
 import * as Yup from 'yup';
 import { Formik } from 'formik';
-
-// project import
-import FirebaseSocial from './FirebaseSocial';
 import AnimateButton from 'components/@extended/AnimateButton';
-
-// assets
 import { EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
-
-// ============================|| FIREBASE - LOGIN ||============================ //
+import axios from 'axios';
+import { userData } from '../../../App';
 
 const AuthLogin = () => {
+  const navigate = useNavigate();
   const [checked, setChecked] = React.useState(false);
-
   const [showPassword, setShowPassword] = React.useState(false);
+  const { dispatch } = useContext(userData);
+
   const handleClickShowPassword = () => {
     setShowPassword(!showPassword);
   };
@@ -47,8 +39,8 @@ const AuthLogin = () => {
     <>
       <Formik
         initialValues={{
-          email: 'info@codedthemes.com',
-          password: '123456',
+          email: '',
+          password: '',
           submit: null
         }}
         validationSchema={Yup.object().shape({
@@ -57,11 +49,25 @@ const AuthLogin = () => {
         })}
         onSubmit={async (values, { setErrors, setStatus, setSubmitting }) => {
           try {
+            // console.log(values.email);
+            const response = await axios.post('/api/admin/login', {
+              email: values.email,
+              password: values.password
+            });
+            localStorage.setItem('ezy_employee_userdata', JSON.stringify(response.data.user));
+            localStorage.setItem('ezy_employee_token', response.data.token);
+            dispatch({
+              type: 'LOGIN',
+              payload: { data: response.data.user, token: response.data.token }
+            });
+            navigate('/dashboard');
+            // console.log(response.data);
             setStatus({ success: false });
             setSubmitting(false);
           } catch (err) {
+            //console.log(err);
             setStatus({ success: false });
-            setErrors({ submit: err.message });
+            setErrors({ submit: err.response.data.detail });
             setSubmitting(false);
           }
         }}
@@ -156,23 +162,11 @@ const AuthLogin = () => {
                   </Button>
                 </AnimateButton>
               </Grid>
-              <Grid item xs={12}>
-                <Link variant="h6" component={RouterLink} to="/dashboard">
-                  <AnimateButton>
-                    <Button disableElevation fullWidth size="large" type="submit" variant="outlined" color="primary">
-                      Bypass Login
-                    </Button>
-                  </AnimateButton>
-                </Link>
-              </Grid>
-              <Grid item xs={12}>
-                <Divider>
-                  <Typography variant="caption"> Login with</Typography>
-                </Divider>
-              </Grid>
-              <Grid item xs={12}>
-                <FirebaseSocial />
-              </Grid>
+              {/* <Grid item xs={12}>
+                <RouterLink to="/employee/dashboard">
+                  <Button variant="outlined">Skip Authentication</Button>
+                </RouterLink>
+              </Grid> */}
             </Grid>
           </form>
         )}
